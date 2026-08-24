@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f3ec">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>考研复习站</title>
+<style>
+:root{--bg:#f6f3ec;--card:#fffdf8;--text:#24231f;--muted:#777168;--line:#e2ddd2;--accent:#74795b;--soft:#ecebdd;--bad:#a4564c;--mid:#9b7440;--good:#55705b}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 14px calc(50px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;align-items:end;gap:10px;flex-wrap:wrap}h1{margin:0;font-size:26px}.muted{font-size:13px;color:var(--muted)}
+.subject,.tabs,.actions,.tools{display:flex;gap:8px;flex-wrap:wrap}.subject{margin:18px 0 10px}
+button{min-height:44px;font:inherit;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);padding:9px 13px}button.active{background:var(--accent);color:white;border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px;text-align:center}.stat b{font-size:20px;display:block}.stat span{font-size:11px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:12px}.front{font-size:32px;font-weight:750;line-height:1.35;margin:8px 0}.sentencefront,.questionfront{font-size:19px;font-weight:650;line-height:1.75}
+.tag{display:inline-block;background:var(--soft);border-radius:999px;padding:4px 8px;margin-right:5px;font-size:12px}.answer{margin-top:14px;background:#f1efe6;border-radius:12px;padding:14px;line-height:1.75}.quote{border-left:4px solid var(--accent);padding-left:12px;margin-top:10px}.hidden{display:none!important}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);margin-top:15px}.bad{color:var(--bad)}.mid{color:var(--mid)}.good{color:var(--good)}
+.progress{height:8px;background:#e8e2d7;border-radius:999px;overflow:hidden;margin:12px 0}.progress div{height:100%;background:var(--accent)}
+input,textarea,select{width:100%;font:inherit;font-size:16px;padding:11px;border:1px solid var(--line);border-radius:11px;background:white;margin-top:4px}textarea{min-height:82px}label{display:block;font-size:12px;color:var(--muted);margin-top:11px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.list{display:grid;gap:8px;margin-top:10px}.row{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px;display:grid;grid-template-columns:1.2fr 1.6fr auto;gap:8px;align-items:center}.row b{overflow-wrap:anywhere}.desc{font-size:14px}.badge{font-size:11px;background:var(--soft);border-radius:999px;padding:4px 7px;white-space:nowrap}.empty{text-align:center;color:var(--muted);padding:28px}
+.install{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted)}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.actions{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.row{grid-template-columns:1fr auto}.row .desc{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><h1>考研复习站</h1><div class="muted">英语真题词汇 · 长难句 · 政治错题</div></div><div id="date" class="muted"></div></div>
+  <div id="installTip" class="install">iPhone：Safari → 分享 → 添加到主屏幕；华为平板：浏览器菜单 → 添加至桌面/主屏幕。</div>
+  <div class="subject"><button id="engBtn" class="active">英语</button><button id="polBtn">政治</button></div>
+  <div class="tabs"><button id="reviewTab" class="active">今日复习</button><button id="libraryTab">题/词库</button><button id="addTab">录入</button><button id="dataTab">备份</button></div>
+
+  <div class="stats">
+    <div class="stat"><b id="due">0</b><span>今日待复习</span></div>
+    <div class="stat"><b id="done">0</b><span>今日已完成</span></div>
+    <div class="stat"><b id="wrong">0</b><span>累计错误</span></div>
+    <div class="stat"><b id="total">0</b><span>库内总数</span></div>
+  </div>
+
+  <section id="reviewSec">
+    <div id="engMode" class="tools"><button data-mode="vocab" class="active">单词</button><button data-mode="sentence">长难句</button></div>
+    <div class="progress"><div id="bar"></div></div>
+    <div id="reviewCard" class="card">
+      <div id="tags"></div><div id="front"></div><div class="muted">先自己回答，再看答案。</div>
+      <button id="reveal" style="margin-top:14px">显示答案 / 原文</button>
+      <div id="answer" class="answer hidden"></div>
+      <div class="actions"><button id="forgot" class="bad">忘记 / 错了</button><button id="fuzzy" class="mid">模糊 / 蒙对</button><button id="know" class="good">秒答 / 掌握</button></div>
+    </div>
+    <div id="empty" class="card empty hidden">今天这一组已经复习完啦。</div>
+  </section>
+
+  <section id="librarySec" class="hidden">
+    <div class="tools"><input id="search" placeholder="搜索单词、原句、题干、知识点…" style="flex:1;min-width:210px"><button id="hardBtn">只看顽固项</button></div>
+    <div id="library" class="list"></div>
+  </section>
+
+  <section id="addSec" class="hidden">
+    <div class="card">
+      <div id="engAdd">
+        <label>类型</label><select id="engType"><option value="vocab">单词 / 短语</option><option value="sentence">长难句</option></select>
+        <div id="vocabFields">
+          <div class="grid2"><div><label>单词 / 短语</label><input id="vWord"></div><div><label>本文语境义</label><input id="vMeaning"></div></div>
+          <label>完整原句</label><textarea id="vSentence"></textarea><label>来源文章</label><input id="vSource" placeholder="例如 2012 Text 2">
+        </div>
+        <div id="sentenceFields" class="hidden">
+          <label>长难句</label><textarea id="sSentence"></textarea><label>来源文章</label><input id="sSource">
+          <label>结构解析</label><textarea id="sStructure"></textarea><label>参考翻译</label><textarea id="sTranslation"></textarea><label>我的卡点</label><input id="sTraps">
+        </div>
+        <button id="addEng" style="margin-top:12px">加入英语库</button>
+      </div>
+      <div id="polAdd" class="hidden">
+        <label>模块</label><select id="pSubject"><option>马原</option><option>毛中特/新思想</option><option>史纲</option><option>思修法基</option><option>时政</option></select>
+        <label>题干（可简化）</label><textarea id="pQuestion"></textarea><label>知识点</label><input id="pKnowledge">
+        <label>正确答案 / 正确逻辑</label><textarea id="pLogic"></textarea><label>我为什么错</label><textarea id="pReason"></textarea>
+        <label>题目陷阱</label><input id="pTrap"><label>来源</label><input id="pSource" placeholder="例如 肖1000 第3章 / 刷题App">
+        <button id="addPol" style="margin-top:12px">加入政治错题库</button>
+      </div>
+      <div id="msg" class="muted" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <section id="dataSec" class="hidden">
+    <div class="card">
+      <p>数据只保存在当前设备浏览器里。换设备或清浏览器数据前，请导出 JSON。</p>
+      <div class="tools"><button id="export">导出 JSON</button><button id="import">导入 JSON</button><button id="reset" class="bad">恢复初始数据</button></div>
+      <textarea id="dataBox" placeholder="导出的 JSON 会出现在这里；恢复时把 JSON 粘贴进来。"></textarea>
+      <div id="dataMsg" class="muted"></div>
+    </div>
+  </section>
+</div>
+<script>
+const KEY="kaoyan_review_pwa_v1";
+const TODAY=()=>new Date().toISOString().slice(0,10);
+const plus=n=>{let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const seedV=[
+["apparently","看来；显然；似乎","A deal is a deal—except, apparently, when Entergy is involved.","2012 Text 2"],
+["provoke","引起；激起","The company provoked justified outrage in Vermont last week.","2012 Text 2"],
+["justified","有正当理由的；合理的","The company provoked justified outrage in Vermont last week.","2012 Text 2"],
+["outrage","愤怒；义愤","The company provoked justified outrage in Vermont last week.","2012 Text 2"],
+["longstanding","长期存在的；由来已久的","It announced it was reneging on a longstanding commitment.","2012 Text 2"],
+["commitment","承诺","It announced it was reneging on a longstanding commitment to abide by the state's strict nuclear regulations.","2012 Text 2"],
+["abide by","遵守（规则、协议、决定）","It announced it was reneging on a longstanding commitment to abide by the state's strict nuclear regulations.","2012 Text 2"],
+["constitutionality","合宪性；是否符合宪法","The company challenged the constitutionality of Vermont's rules in the federal court.","2012 Text 2"],
+["desperate","不顾一切的；孤注一掷的","The challenge is part of a desperate effort to keep its nuclear power plant running.","2012 Text 2"],
+["plant","工厂；发电厂（本文：核电站）","The challenge is part of a desperate effort to keep its Vermont Yankee nuclear power plant running.","2012 Text 2"],
+["surface","浮现；显现；逐渐暴露","The conflict has been surfacing since 2002.","2012 Text 2"],
+["condition","条件；as a condition of = 作为……的条件","As a condition of receiving state approval for the sale, the company agreed to seek permission.","2012 Text 2"],
+["approval","批准；许可","As a condition of receiving state approval for the sale, the company agreed to seek permission.","2012 Text 2"],
+["past","超过；越过","The company agreed to seek permission from state regulators to operate past 2012.","2012 Text 2"],
+["live by","遵守；按照……行事","Either Entergy never really intended to live by those commitments, or it simply didn't foresee what would happen next.","2012 Text 2"],
+["misleading","误导性的","The company made misleading statements about the pipe.","2012 Text 2"],
+["enraged","被激怒的；愤怒的","Enraged by Entergy's behavior, the Vermont Senate voted against allowing an extension.","2012 Text 2"],
+["obscure","不清楚的；晦涩难明的","The legal issues in the case are obscure.","2012 Text 2"],
+["whereas","然而；而（表示对比）","Whereas the Supreme Court has ruled that states do have some regulatory authority over nuclear power...","2012 Text 2"],
+["precedent-setting","开创先例的；具有判例意义的","The Vermont case will offer a precedent-setting test.","2012 Text 2"],
+["patchwork","东拼西凑的；缺乏统一性的","There are valid concerns about the patchwork regulations.","2012 Text 2"],
+["beside the point","离题的；与问题无关的；无关紧要","But had Entergy kept its word, that debate would be beside the point.","2012 Text 2"],
+["enter into","订立；达成（协议）","By entering into the 2002 agreement, Entergy intended to get permission to purchase a power plant.","2012 Text 2"],
+["vision","眼光；规划能力；远见","Entergy seems to have problems with its business vision.","2012 Text 2"],
+["withdraw","撤回；撤销","Entergy will withdraw its application.","2012 Text 2"]
+].map((x,i)=>({id:"v"+i,type:"vocab",word:x[0],meaning:x[1],contexts:[{sentence:x[2],source:x[3],meaning:x[1]}],wrong:0,streak:0,due:TODAY(),last:null}));
+const seedS=[
+{id:"s1",type:"sentence",sentence:"But had Entergy kept its word, that debate would be beside the point.",source:"2012 Text 2",structure:"had Entergy kept = if Entergy had kept：过去虚拟条件句省略 if 后倒装。",translation:"但是，如果 Entergy 当初信守承诺，这场争论就与此事无关了。",traps:"虚拟条件句倒装；keep one's word；beside the point",wrong:0,streak:0,due:TODAY(),last:null},
+{id:"s2",type:"sentence",sentence:"The company seems to have concluded that its reputation in Vermont is already so damaged that it has nothing left to lose by going to war with the state.",source:"2012 Text 2",structure:"seem to have concluded + that宾语从句；so...that...；nothing left to lose；by doing。",translation:"该公司似乎认定，它在佛蒙特州的声誉已经受损到无可再失，因此即使与州政府公开对抗也没什么可损失的。",traps:"seem to have done；so...that；go to war with 的比喻义",wrong:0,streak:0,due:TODAY(),last:null}
+];
+function fresh(){return{english:[...seedV,...seedS],politics:[],done:{}}}
+let state;try{state=JSON.parse(localStorage.getItem(KEY))||fresh()}catch(e){state=fresh()}
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+let subject="english",mode="vocab",queue=[],idx=0,current=null,hardOnly=false;
+const $=x=>document.getElementById(x);
+$("date").textContent=new Date().toLocaleDateString("zh-CN",{month:"long",day:"numeric",weekday:"short"});
+function doneKey(){return TODAY()+"_"+subject+"_"+(subject==="english"?mode:"politics")}
+function doneSet(){return new Set(state.done[doneKey()]||[])}
+function pool(){return subject==="english"?state.english.filter(x=>x.type===mode):state.politics}
+function duePool(){let ds=doneSet();return pool().filter(x=>x.due<=TODAY()&&!ds.has(x.id)).sort((a,b)=>(b.wrong||0)-(a.wrong||0))}
+function stats(){let p=pool();$("due").textContent=duePool().length;$("done").textContent=doneSet().size;$("wrong").textContent=p.reduce((n,x)=>n+(x.wrong||0),0);$("total").textContent=p.length}
+function build(){queue=duePool();idx=0;render()}
+function render(){
+ stats();
+ if(idx>=queue.length){$("reviewCard").classList.add("hidden");$("empty").classList.remove("hidden");$("bar").style.width="100%";return}
+ $("reviewCard").classList.remove("hidden");$("empty").classList.add("hidden");current=queue[idx];$("answer").classList.add("hidden");$("bar").style.width=(queue.length?idx/queue.length*100:0)+"%";
+ if(subject==="english"&&mode==="vocab"){
+   $("front").className="front";$("front").textContent=current.word;let cs=current.contexts||[];
+   $("tags").innerHTML=`<span class=tag>单词</span><span class=tag>错 ${current.wrong||0} 次</span><span class=tag>${esc(cs.map(c=>c.source).join(" · "))}</span>`;
+   $("answer").innerHTML=`<b>${esc(current.meaning)}</b>`+cs.map(c=>`<div class=quote>${esc(c.sentence)}<div class=muted>${esc(c.source)}</div></div>`).join("");
+ }else if(subject==="english"){
+   $("front").className="sentencefront";$("front").textContent=current.sentence;
+   $("tags").innerHTML=`<span class=tag>长难句</span><span class=tag>错 ${current.wrong||0} 次</span><span class=tag>${esc(current.source)}</span>`;
+   $("answer").innerHTML=`<b>结构：</b>${esc(current.structure)}<br><b>翻译：</b>${esc(current.translation)}<br><b>卡点：</b>${esc(current.traps)}`;
+ }else{
+   $("front").className="questionfront";$("front").textContent=current.question;
+   $("tags").innerHTML=`<span class=tag>${esc(current.subject)}</span><span class=tag>错 ${current.wrong||0} 次</span>`;
+   $("answer").innerHTML=`<b>知识点：</b>${esc(current.knowledge)}<br><b>正确逻辑：</b>${esc(current.logic)}<br><b>我为什么错：</b>${esc(current.reason)}<br><b>陷阱：</b>${esc(current.trap)}<br><span class=muted>${esc(current.source)}</span>`;
+ }
+}
+$("reveal").onclick=()=>$("answer").classList.toggle("hidden");
+function grade(k){let x=current;if(!x)return;let days=1;if(k==="forgot"){x.wrong=(x.wrong||0)+1;x.streak=0;days=1}else if(k==="fuzzy"){days=2}else{x.streak=(x.streak||0)+1;let ladder=[2,4,7,14,30,60];days=ladder[Math.min(x.streak-1,ladder.length-1)]}x.last=TODAY();x.due=plus(days);state.done[doneKey()]=state.done[doneKey()]||[];state.done[doneKey()].push(x.id);save();idx++;render()}
+$("forgot").onclick=()=>grade("forgot");$("fuzzy").onclick=()=>grade("fuzzy");$("know").onclick=()=>grade("know");
+function switchSubject(s){subject=s;$("engBtn").classList.toggle("active",s==="english");$("polBtn").classList.toggle("active",s==="politics");$("engMode").classList.toggle("hidden",s!=="english");$("engAdd").classList.toggle("hidden",s!=="english");$("polAdd").classList.toggle("hidden",s!=="politics");build();renderLibrary()}
+$("engBtn").onclick=()=>switchSubject("english");$("polBtn").onclick=()=>switchSubject("politics");
+document.querySelectorAll("#engMode button").forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll("#engMode button").forEach(x=>x.classList.toggle("active",x===b));build()});
+function tab(name){["review","library","add","data"].forEach(n=>{$(n+"Sec").classList.toggle("hidden",n!==name);$(n+"Tab").classList.toggle("active",n===name)});if(name==="library")renderLibrary()}
+$("reviewTab").onclick=()=>tab("review");$("libraryTab").onclick=()=>tab("library");$("addTab").onclick=()=>tab("add");$("dataTab").onclick=()=>tab("data");
+$("engType").onchange=()=>{$("vocabFields").classList.toggle("hidden",$("engType").value!=="vocab");$("sentenceFields").classList.toggle("hidden",$("engType").value!=="sentence")};
+$("addEng").onclick=()=>{if($("engType").value==="vocab"){let w=$("vWord").value.trim(),m=$("vMeaning").value.trim(),sen=$("vSentence").value.trim(),src=$("vSource").value.trim();if(!w||!m){$("msg").textContent="至少填单词和语境义。";return}let old=state.english.find(x=>x.type==="vocab"&&x.word.toLowerCase()===w.toLowerCase());if(old){old.contexts=old.contexts||[];old.contexts.push({sentence:sen,source:src,meaning:m});if(!old.meaning.includes(m))old.meaning+="；"+m;$("msg").textContent="这个词已存在：已追加文章来源和原句。"}else{state.english.push({id:"v"+Date.now(),type:"vocab",word:w,meaning:m,contexts:[{sentence:sen,source:src,meaning:m}],wrong:0,streak:0,due:TODAY(),last:null});$("msg").textContent="已加入单词库。"}}else{let sen=$("sSentence").value.trim();if(!sen){$("msg").textContent="请填长难句。";return}state.english.push({id:"s"+Date.now(),type:"sentence",sentence:sen,source:$("sSource").value.trim(),structure:$("sStructure").value.trim(),translation:$("sTranslation").value.trim(),traps:$("sTraps").value.trim(),wrong:0,streak:0,due:TODAY(),last:null});$("msg").textContent="已加入长难句库。"}save();stats()};
+$("addPol").onclick=()=>{let q=$("pQuestion").value.trim();if(!q){$("msg").textContent="至少填题干。";return}state.politics.push({id:"p"+Date.now(),type:"politics",subject:$("pSubject").value,question:q,knowledge:$("pKnowledge").value.trim(),logic:$("pLogic").value.trim(),reason:$("pReason").value.trim(),trap:$("pTrap").value.trim(),source:$("pSource").value.trim(),wrong:1,streak:0,due:plus(1),last:TODAY()});save();$("msg").textContent="已加入政治错题库；明天第一次复习。";stats()};
+function renderLibrary(){let q=$("search").value.toLowerCase(),arr=subject==="english"?state.english:state.politics;if(hardOnly)arr=arr.filter(x=>(x.wrong||0)>0);if(q)arr=arr.filter(x=>JSON.stringify(x).toLowerCase().includes(q));arr=[...arr].sort((a,b)=>(b.wrong||0)-(a.wrong||0));$("library").innerHTML=arr.map(x=>{let title=x.word||x.question||x.sentence,desc=x.meaning||x.knowledge||x.translation||"",src=x.contexts?.map(c=>c.source).join(" · ")||x.source||"";return `<div class=row><b>${esc(title)}</b><div class=desc>${esc(desc)}<div class=muted>${esc(src)}</div></div><span class=badge>${x.wrong||0}错 · ${esc(x.due)}</span></div>`}).join("")||"<div class='card empty'>这里还没有内容。</div>"}
+$("search").oninput=renderLibrary;$("hardBtn").onclick=()=>{hardOnly=!hardOnly;$("hardBtn").classList.toggle("active",hardOnly);renderLibrary()};
+$("export").onclick=()=>{$("dataBox").value=JSON.stringify(state,null,2);$("dataMsg").textContent="已生成备份。"};
+$("import").onclick=()=>{try{let x=JSON.parse($("dataBox").value);if(!x.english||!x.politics)throw 0;state=x;save();$("dataMsg").textContent="恢复成功。";build()}catch(e){$("dataMsg").textContent="备份格式不正确。"}};
+$("reset").onclick=()=>{if(confirm("确定清空当前记录并恢复初始英语数据？")){state=fresh();save();build();$("dataMsg").textContent="已恢复。"}};
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+switchSubject("english");
+</script>
+</body>
+</html>

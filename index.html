@@ -146,6 +146,8 @@ input,textarea,select{width:100%;font:inherit;font-size:16px;padding:11px;border
 <script>
 const KEY="kaoyan_review_pwa_v1";
 const SYNC_CFG_KEY="kaoyan_sync_config_v1",SYNC_SESSION_KEY="kaoyan_sync_session_v1";
+const DEFAULT_SUPABASE_URL="https://cyiwmslrbtmorafmlmle.supabase.co";
+const DEFAULT_SUPABASE_KEY="sb_publishable_ixbG_v0bh2xljXXbMiCS-g_Yh9DtQYv";
 const TODAY=()=>new Date().toISOString().slice(0,10);
 const plus=n=>{let d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -284,8 +286,10 @@ let syncTimer=null,syncBusy=false;
 function syncConfig(){try{return JSON.parse(localStorage.getItem(SYNC_CFG_KEY))||{}}catch(e){return {}}}
 function syncSession(){try{return JSON.parse(localStorage.getItem(SYNC_SESSION_KEY))||null}catch(e){return null}}
 function setSyncStatus(message){$("syncStatus").textContent=message}
-function saveSyncConfig(){let cfg={url:text($("syncUrl").value).replace(/\/$/,""),anon:text($("syncAnon").value),email:text($("syncEmail").value),auto:$("autoSync").checked,lastSync:syncConfig().lastSync||null};localStorage.setItem(SYNC_CFG_KEY,JSON.stringify(cfg));return cfg}
-function loadSyncUi(){let cfg=syncConfig();$("syncUrl").value=cfg.url||"";$("syncAnon").value=cfg.anon||"";$("syncEmail").value=cfg.email||"";$("autoSync").checked=!!cfg.auto;setSyncStatus(cfg.lastSync?`上次同步：${new Date(cfg.lastSync).toLocaleString("zh-CN")}`:"尚未同步。")}
+function normalizeSupabaseUrl(value){let raw=text(value).trim(),markdown=raw.match(/\((https:\/\/[^)]+)\)/i);if(markdown)raw=markdown[1];raw=raw.replace(/[\s'"`]+/g,"").replace(/\/+$/,"").replace(/\/rest\/v1$/i,"");let match=raw.match(/^https:\/\/([a-z0-9-]+)\.supabase\.co(?:\/.*)?$/i);return match?`https://${match[1]}.supabase.co`:""}
+function normalizeSupabaseKey(value){return text(value).trim().replace(/[\s'"`]+/g,"")}
+function saveSyncConfig(){let old=syncConfig(),url=normalizeSupabaseUrl($("syncUrl").value),anon=normalizeSupabaseKey($("syncAnon").value),cfg={url,anon,email:text($("syncEmail").value).trim(),auto:$("autoSync").checked,lastSync:old.lastSync||null};$("syncUrl").value=url||text($("syncUrl").value).trim();$("syncAnon").value=anon;localStorage.setItem(SYNC_CFG_KEY,JSON.stringify(cfg));return cfg}
+function loadSyncUi(){let cfg=syncConfig(),url=normalizeSupabaseUrl(cfg.url)||DEFAULT_SUPABASE_URL,anon=normalizeSupabaseKey(cfg.anon)||DEFAULT_SUPABASE_KEY;$("syncUrl").value=url;$("syncAnon").value=anon;$("syncEmail").value=cfg.email||"";$("autoSync").checked=!!cfg.auto;setSyncStatus(cfg.lastSync?`上次同步：${new Date(cfg.lastSync).toLocaleString("zh-CN")}`:"尚未同步。")}
 async function authRequest(path,body){let cfg=saveSyncConfig();if(!cfg.url||!cfg.anon)throw new Error("请先填写 Supabase Project URL 和 anon key。");let r=await fetch(cfg.url+path,{method:"POST",headers:{"Content-Type":"application/json","apikey":cfg.anon},body:JSON.stringify(body)}),data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.msg||data.error_description||data.message||"认证失败");return data}
 function storeSession(data){if(!data?.access_token||!data?.user)throw new Error("请先在邮箱中确认账号，再回来登录。");let session={access_token:data.access_token,refresh_token:data.refresh_token,user:data.user,expires_at:Date.now()+(data.expires_in||3600)*1000};localStorage.setItem(SYNC_SESSION_KEY,JSON.stringify(session));return session}
 async function ensureSession(){let session=syncSession();if(!session)throw new Error("请先登录同步账号。");if(session.expires_at>Date.now()+60000)return session;let data=await authRequest("/auth/v1/token?grant_type=refresh_token",{refresh_token:session.refresh_token});return storeSession(data)}

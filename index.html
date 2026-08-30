@@ -452,12 +452,18 @@ let lastCloudSnapshotCount=0;
 async function readCloudState(session){let rows=await cloudRequest(`/rest/v1/review_states?user_id=eq.${encodeURIComponent(session.user.id)}&select=payload,client_updated_at&order=client_updated_at.asc`);lastCloudSnapshotCount=rows?.length||0;if(!lastCloudSnapshotCount)return null;return rows.reduce((merged,row)=>merged?mergeCloudState(merged,row.payload||{}):migrateState(row.payload||{}),null)}
 async function writeCloudState(session,payload){return cloudRequest("/rest/v1/review_states?on_conflict=user_id",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify({user_id:String(session.user.id),payload,client_updated_at:new Date().toISOString()})})}
 function applyMergedState(merged){
- let keepReview=activeTab==="review"&&queue.length>0,queueIds=keepReview?queue.map(x=>String(x.id)):[],answered=keepReview?sessionAnswered.map(x=>({...x,itemId:String(x.item.id)})):[];
+ let keepReview=activeTab==="review"&&queue.length>0,queueIds=keepReview?queue.map(x=>String(x.id)):[],answered=keepReview?sessionAnswered.map(x=>({...x,itemId:String(x.item.id)})):[],currentId=keepReview&&current?String(current.id):"";
  state=migrateState(merged);save(false);refreshSourceFilter();
  if(keepReview){
    queue=queueIds.map(findItem).filter(Boolean);
    sessionAnswered=answered.map(x=>({...x,item:findItem(x.itemId)})).filter(x=>x.item);
-   idx=Math.min(idx,queue.length);render();
+   idx=Math.min(idx,queue.length);
+   let syncedCurrent=currentId?findItem(currentId):null;
+   if(syncedCurrent){
+     current=syncedCurrent;
+     if(viewingHistory&&historyCursor!==null&&sessionAnswered[historyCursor])sessionAnswered[historyCursor].item=syncedCurrent;
+     else if(idx<queue.length)queue[idx]=syncedCurrent;
+   }else render();
  }else build();
  stats();renderLibrary();renderHard();if(subject==="english")renderCalendar()
 }
